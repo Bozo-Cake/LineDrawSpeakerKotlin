@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">LineDrawSpeakerKotlin</string>
+    <string name="pressed">Pressed</string>
+    <string name="touchToBegin">Released: Touch to get co-ordinates\n</string>
+</resources>
