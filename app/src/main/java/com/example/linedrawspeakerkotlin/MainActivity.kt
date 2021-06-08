@@ -24,11 +24,13 @@ class MainActivity : AppCompatActivity() {
     private var prompt: TextView? = null
     private var action: Button? = null
     private var mainMan: ConstraintLayout? = null
+    private var dv: DrawView? = null
 
     private val TAG = "MAIN" //For Logs
 
     private val vibThresh = 10f
-    private val vibrateTime = 100 //ms
+    private val vibrateTime = 100L //ms
+    //private val vibrateAmp = 200 //1 - 255 for amplitude
 
     private var vibrator: Vibrator? = null
     private var xWave: ArrayList<Float>? = null
@@ -61,7 +63,9 @@ class MainActivity : AppCompatActivity() {
     private fun acceptLine() {
         //User is happy with line that is draw.
         //Delete or change any Views strictly associated with drawing.
-        prompt!!.text = getString(R.string.letUsBegin)
+        prompt!!.text = "Line Saved?"
+        mainMan?.removeView(dv)
+        dv = null
         action!!.text = "Draw"
         //Remove or update any onclickListeners.
         mainMan!!.setOnTouchListener(null)
@@ -78,8 +82,8 @@ class MainActivity : AppCompatActivity() {
         //OnRelease
         if (event.action == MotionEvent.ACTION_UP) {
             prompt!!.text = "Redraw to Redraw, or Save I.t."
-            //drawLine()
-            increaseResolution()
+            drawLine()
+            //increaseResolution()
         }
         //OnTouch
         if (event.action == MotionEvent.ACTION_DOWN) {
@@ -150,6 +154,7 @@ class MainActivity : AppCompatActivity() {
                 } else {
                     //Depreciated in API 26
                     vibrator!!.vibrate(vibrateTime.toLong())
+                    //vibrator!!.vibrate(VibrationEffect.createOneShot(vibrateTime, vibrateAmp))
                 }
             }
         }
@@ -160,43 +165,16 @@ class MainActivity : AppCompatActivity() {
     private fun increaseResolution() {
         return
     }
-    /**
+
     private fun drawLine() {
-        T!!.text = String.format("%s%d", getString(R.string.touchToBegin), xWave!!.size)
-        val dv = DrawView(this, xWave!!, yWave!!)
-        dv.setBackgroundColor(Color.WHITE)
-        dv.id = myCanvas
-        val mainView = findViewById<RelativeLayout>(R.id.mainView)
-        mainView.addView(dv)
-        var params = RelativeLayout.LayoutParams(
-            RelativeLayout.LayoutParams.WRAP_CONTENT,
-            RelativeLayout.LayoutParams.WRAP_CONTENT
-        )
-        params.addRule(RelativeLayout.ALIGN_BOTTOM, RelativeLayout.TRUE)
-        val btn = Button(this)
-        btn.layoutParams = params
-        btn.id = R.id.reset
-        btn.setOnClickListener {
-            val main = findViewById<ViewGroup>(R.id.mainView)
-            main.removeView(findViewById(R.id.myCanvas))
-            main.removeView(findViewById(R.id.reset))
-            main.removeView(findViewById(R.id.player))
-        }
-        btn.text = "           Go Back"
-        mainView.addView(btn, params)
-        params = RelativeLayout.LayoutParams(
-            RelativeLayout.LayoutParams.WRAP_CONTENT,
-            RelativeLayout.LayoutParams.WRAP_CONTENT
-        )
-        params.addRule(RelativeLayout.ALIGN_RIGHT, RelativeLayout.TRUE)
-        val play = Button(this)
-        play.id = R.id.player
-        play.layoutParams = params
-        play.setOnClickListener { playSound() }
-        play.text = "Play"
-        mainView.addView(play, params)
+        dv = DrawView(this, xWave!!, yWave!!)
+        dv!!.setBackgroundColor(Color.WHITE)
+        dv!!.id = R.id.myCanvas
+        dv!!.layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+        Log.d(TAG, "Adding myCanvas to mainActivity")
+        mainMan!!.addView(dv)
     }
-    **/
+
     fun playSound() {
         return
     }
