@@ -1,5 +1,6 @@
 package com.example.linedrawspeakerkotlin
 
+import android.annotation.SuppressLint
 import android.content.pm.ActivityInfo
 import android.graphics.Color
 import android.os.Build
@@ -7,6 +8,7 @@ import android.os.Build.VERSION
 import android.os.Bundle
 import android.os.VibrationEffect
 import android.os.Vibrator
+import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 import android.view.View.OnTouchListener
@@ -29,8 +31,8 @@ class MainActivity : AppCompatActivity() {
     private val vibrateTime = 100 //ms
 
     private var vibrator: Vibrator? = null
-    var xWave: ArrayList<Float>? = null
-    var yWave: ArrayList<Float>? = null
+    private var xWave: ArrayList<Float>? = null
+    private var yWave: ArrayList<Float>? = null
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -42,36 +44,46 @@ class MainActivity : AppCompatActivity() {
         action = findViewById(R.id.action)
 
         action?.setOnClickListener { letsDraw() }
-        prompt?.text = "Use the button :)"
+        prompt?.text = getString(R.string.letUsBegin)
 
-        //Build Canvas and Activate
-//        T.setOnTouchListener(OnTouchListener { v: View?, event: MotionEvent? ->
-//            this.onTouch(
-//                v,
-//                event
-//            )
-//        })
+
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     private fun letsDraw() {
-        prompt?.text = String.format("%s%d", getString(R.string.touchToBegin), xWave?.size)
-        val dv = DrawView(this, xWave!!, yWave!!)
-        dv.setBackgroundColor(Color.WHITE)
-        dv.id = R.id.myCanvas
+        //Build Canvas and Activate
+        mainMan!!.setOnTouchListener { v, event -> this.onTouch(v, event) }
+        prompt!!.text = "Redraw to Redraw"
+        action!!.text = "Save"
+        action!!.setOnClickListener { acceptLine() }
+    }
+
+    private fun acceptLine() {
+        //User is happy with line that is draw.
+        //Delete or change any Views strictly associated with drawing.
+        prompt!!.text = getString(R.string.letUsBegin)
+        action!!.text = "Draw"
+        //Remove or update any onclickListeners.
+        mainMan!!.setOnTouchListener(null)
+        action!!.setOnClickListener { letsDraw() }
+        //Save line to shared prefs
+        //take user to page to clean it up and play it.
+        return
+        //Haha, this forces it to crash.
+        TODO("Not yet implemented")
     }
 
     private fun onTouch(v: View, event: MotionEvent): Boolean {
         //https://developer.android.com/reference/android/view/MotionEvent
         //OnRelease
         if (event.action == MotionEvent.ACTION_UP) {
-            drawLine()
+            prompt!!.text = "Redraw to Redraw, or Save I.t."
+            //drawLine()
             increaseResolution()
         }
         //OnTouch
         if (event.action == MotionEvent.ACTION_DOWN) {
-            T?.setText(R.string.pressed)
-            //wave = new HashMap<Float, Float>();
-            //wave.put(0f, 0f);
+            prompt!!.setText(R.string.pressed)
             xWave = ArrayList()
             yWave = ArrayList()
             xWave!!.add(event.x)
@@ -86,8 +98,9 @@ class MainActivity : AppCompatActivity() {
             var prevX = 0f
             var prevY = 0f
             var diffX: Float
-            var diffY: Float
+            //var diffY: Float
             val waveSize = xWave!!.size
+            prompt!!.text = String.format("Drawing has %d points...", waveSize)
             //Update prev* values after at least one entry is saved.
             if (waveSize > 0) { //Should always be true because first entry is saved in OnTouch
                 prevX = xWave!![waveSize - 1]
@@ -118,6 +131,7 @@ class MainActivity : AppCompatActivity() {
             //No Backtracking
             diffX = lastX - prevX
             if (diffX < 0) {
+                Log.d(TAG, "A.S. says this won't ever be executed")
                 lastX = prevX
                 lastY = prevY
             } else {
@@ -145,13 +159,14 @@ class MainActivity : AppCompatActivity() {
             }
             return true
         }
-        return false
+        //if you return false, it will pass on motion events to any parent view.
+        return true
     }
 
-    fun increaseResolution() {
+    private fun increaseResolution() {
         return
     }
-
+    /**
     private fun drawLine() {
         T!!.text = String.format("%s%d", getString(R.string.touchToBegin), xWave!!.size)
         val dv = DrawView(this, xWave!!, yWave!!)
@@ -187,7 +202,7 @@ class MainActivity : AppCompatActivity() {
         play.text = "Play"
         mainView.addView(play, params)
     }
-
+    **/
     fun playSound() {
         return
     }
