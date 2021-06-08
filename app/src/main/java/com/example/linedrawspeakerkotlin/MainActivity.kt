@@ -92,8 +92,8 @@ class MainActivity : AppCompatActivity() {
         //OnMove
         if (event.action == MotionEvent.ACTION_MOVE) {
             //A motion event seems to have 0 - 4 coordinates in each.
-            var lastX = event.x
-            var lastY: Float? = event.y
+            val lastX = event.x
+            val lastY: Float = event.y
             //If prev* don't update, you'll see a line from top corner to first touch.
             var prevX = 0f
             var prevY = 0f
@@ -130,11 +130,7 @@ class MainActivity : AppCompatActivity() {
             } //Skips the last one; manually add the last one.
             //No Backtracking
             diffX = lastX - prevX
-            if (diffX < 0) {
-                Log.d(TAG, "A.S. says this won't ever be executed")
-                lastX = prevX
-                lastY = prevY
-            } else {
+            if (diffX >= 0) {
                 xWave!!.add(lastX)
                 yWave!!.add(lastY!!)
             }
@@ -155,9 +151,7 @@ class MainActivity : AppCompatActivity() {
                     //Depreciated in API 26
                     vibrator!!.vibrate(vibrateTime.toLong())
                 }
-                tooFast = false
             }
-            return true
         }
         //if you return false, it will pass on motion events to any parent view.
         return true
