@@ -10,11 +10,13 @@ import android.widget.LinearLayout
 import java.util.*
 
 class DrawView (context: Context?, private var _x: ArrayList<Float>, private var _y: ArrayList<Float>) : LinearLayout(context) {
-
     private val TAG = "DrawView" //For Logs
     private var paint: Paint? = null
     private var w = 0
     private var h = 0
+    fun DrawView(c: Context?, attrs: AttributeSet?) {
+        super(c, attrs)
+    }
     public override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         var i = 0
