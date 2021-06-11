@@ -167,13 +167,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun drawLine() {
-        //dv = DrawView(this, xWave!!, yWave!!)
         dv = findViewById(R.id.myCanvas2)
+        dv!!.setCoordinates(xWave!!, yWave!!)
+
         //dv!!.setBackgroundColor(Color.WHITE)
         //dv!!.id = R.id.myCanvas
         //dv!!.layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
         Log.d(TAG, "Adding myCanvas to mainActivity")
-        mainMan!!.addView(dv)
+        //mainMan!!.addView(dv)
     }
 
     fun playSound() {
