@@ -169,6 +169,7 @@ class MainActivity : AppCompatActivity() {
     private fun drawLine() {
         dv = findViewById(R.id.myCanvas2)
         dv!!.setCoordinates(xWave!!, yWave!!)
+        dv!!.invalidate()
 
         //dv!!.setBackgroundColor(Color.WHITE)
         //dv!!.id = R.id.myCanvas

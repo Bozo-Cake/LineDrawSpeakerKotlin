@@ -27,13 +27,17 @@ class DrawView : LinearLayout {
         yWave = y
     }
     public override fun onDraw(canvas: Canvas) {
+        paint = Paint()
         super.onDraw(canvas)
+        paint!!.color = Color.RED
+        paint!!.strokeWidth = 5f
+        canvas.drawLine(0f, 0f, w.toFloat(), 0f, paint!!)
         if (xWave == null || yWave == null){
             Log.d(TAG, "method setCoordinates has not been invoked with valid coordinates.")
             return;
         }
         var i = 0
-        paint = Paint()
+
         paint!!.color = Color.BLUE
         paint!!.strokeWidth = 3f
         while (i < xWave!!.size - 1) {
@@ -46,9 +50,7 @@ class DrawView : LinearLayout {
             xWave!![xWave!!.size - 1], yWave!![yWave!!.size - 1], xWave!![xWave!!.size - 1], yWave!![0],
             paint!!
         )
-        paint!!.color = Color.RED
-        paint!!.strokeWidth = 5f
-        canvas.drawLine(0f, yWave!![0], w.toFloat(), yWave!![0], paint!!)
+
     }
 
     //https://stackoverflow.com/questions/6652400/how-can-i-get-the-canvas-size-of-a-custom-view-outside-of-the-ondraw-method
