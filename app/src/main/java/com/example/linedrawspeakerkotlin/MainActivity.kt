@@ -3,7 +3,6 @@ package com.example.linedrawspeakerkotlin
 import android.animation.ObjectAnimator
 import android.annotation.SuppressLint
 import android.content.pm.ActivityInfo
-import android.graphics.Color
 import android.os.Build
 import android.os.Build.VERSION
 import android.os.Bundle
@@ -12,14 +11,13 @@ import android.os.Vibrator
 import android.util.Log
 import android.view.MotionEvent
 import android.view.View
-import android.view.View.OnTouchListener
-import android.view.ViewGroup
 import android.widget.Button
-import android.widget.RelativeLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.lifecycle.lifecycleScope
 import java.util.*
+import kotlinx.coroutines.*
 
 class MainActivity : AppCompatActivity() {
     private var prompt: TextView? = null
@@ -181,7 +179,13 @@ class MainActivity : AppCompatActivity() {
         return true
     }
 
-    private fun increaseResolution() {
+    fun increaseResolution() {
+        lifecycleScope.launch(Dispatchers.Default) {
+            //Do the Mathic!!
+        }
+        //or
+        //val doIt = async(Dispatchers.Default) {Line2SoundBuffer.calculateBuffer(xWave, yWave)}
+        //val highResolutionBuffer = doIt.await()
         return
     }
 
