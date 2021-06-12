@@ -16,7 +16,6 @@ class DrawView : LinearLayout {
     private var h = 0
     private var xWave: ArrayList<Float>? = null
     private var yWave: ArrayList<Float>? = null
-    //constructor(context: Context?, private var xWave: ArrayList<Float>, private var yWave: ArrayList<Float>)
     constructor(context: Context) : super(context)
     constructor(c: Context, attrs: AttributeSet) : super(c, attrs)
     constructor(c: Context, attrs: AttributeSet, defStyleAttr: Int) : super(c, attrs, defStyleAttr)
@@ -31,7 +30,7 @@ class DrawView : LinearLayout {
         super.onDraw(canvas)
         paint!!.color = Color.RED
         paint!!.strokeWidth = 5f
-        canvas.drawLine(0f, 0f, w.toFloat(), 0f, paint!!)
+        canvas.drawLine(0f, h/2f, w.toFloat(), h/2f, paint!!)
         if (xWave == null || yWave == null){
             Log.d(TAG, "method setCoordinates has not been invoked with valid coordinates.")
             return;
@@ -45,11 +44,6 @@ class DrawView : LinearLayout {
             canvas.drawLine(xWave!![i], yWave!![i], xWave!![i + 1], yWave!![i + 1], paint!!)
             i++
         }
-        //connect to baseline: ~first y point.
-        canvas.drawLine(
-            xWave!![xWave!!.size - 1], yWave!![yWave!!.size - 1], xWave!![xWave!!.size - 1], yWave!![0],
-            paint!!
-        )
 
     }
 

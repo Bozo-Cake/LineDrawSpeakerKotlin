@@ -1,5 +1,6 @@
 package com.example.linedrawspeakerkotlin
 
+import android.animation.ObjectAnimator
 import android.annotation.SuppressLint
 import android.content.pm.ActivityInfo
 import android.graphics.Color
@@ -25,6 +26,7 @@ class MainActivity : AppCompatActivity() {
     private var action: Button? = null
     private var mainMan: ConstraintLayout? = null
     private var dv: DrawView? = null
+    private var dvAnimator: ObjectAnimator? = null
 
     private val TAG = "MAIN" //For Logs
 
@@ -32,9 +34,12 @@ class MainActivity : AppCompatActivity() {
     private val vibrateTime = 100L //ms
     //private val vibrateAmp = 200 //1 - 255 for amplitude
 
+    private val animateSize = 800f
+
     private var vibrator: Vibrator? = null
     private var xWave: ArrayList<Float>? = null
     private var yWave: ArrayList<Float>? = null
+    @SuppressLint("ObjectAnimatorBinding")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -48,23 +53,37 @@ class MainActivity : AppCompatActivity() {
         action?.setOnClickListener { letsDraw() }
         prompt?.text = getString(R.string.letUsBegin)
 
+        //Move Drawing Canvas off of screen
+        dv = findViewById(R.id.myCanvas2)
+
+        dvAnimator = ObjectAnimator.ofFloat(dv, "translationY", animateSize).apply {
+            duration = 1000
+            start()
+        }
+        //dv!!.visibility = View.GONE
+        dv = null
 
     }
 
     @SuppressLint("ClickableViewAccessibility")
     private fun letsDraw() {
         //Build Canvas and Activate
+        dv = findViewById(R.id.myCanvas2)
+        //dv!!.visibility = View.VISIBLE
         mainMan!!.setOnTouchListener { v, event -> this.onTouch(v, event) }
         prompt!!.text = "Redraw to Redraw"
         action!!.text = "Save"
+        dvAnimator?.reverse()
         action!!.setOnClickListener { acceptLine() }
     }
 
+    @SuppressLint("ObjectAnimatorBinding")
     private fun acceptLine() {
         //User is happy with line that is draw.
         //Delete or change any Views strictly associated with drawing.
         prompt!!.text = "Line Saved?"
-        mainMan?.removeView(dv)
+        dvAnimator!!.start()
+        //dv!!.visibility = View.GONE
         dv = null
         action!!.text = "Draw"
         //Remove or update any onclickListeners.
@@ -166,6 +185,7 @@ class MainActivity : AppCompatActivity() {
         return
     }
 
+    @SuppressLint("ObjectAnimatorBinding")
     private fun drawLine() {
         dv = findViewById(R.id.myCanvas2)
         dv!!.setCoordinates(xWave!!, yWave!!)
