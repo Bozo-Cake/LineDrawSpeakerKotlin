@@ -4,6 +4,8 @@ import android.animation.ObjectAnimator
 import android.annotation.SuppressLint
 import android.content.pm.ActivityInfo
 import android.media.AudioAttributes
+import android.media.AudioFormat
+import android.media.AudioManager
 import android.media.AudioTrack
 import android.os.Build
 import android.os.Build.VERSION
@@ -39,6 +41,7 @@ class MainActivity : AppCompatActivity() {
     private var vibrator: Vibrator? = null
     private var xWave: ArrayList<Float>? = null
     private var yWave: ArrayList<Float>? = null
+    private var highResolutionBuffer: Array<Float>? = null
     @SuppressLint("ObjectAnimatorBinding")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -92,8 +95,6 @@ class MainActivity : AppCompatActivity() {
         //Save line to shared prefs
         //take user to page to clean it up and play it.
         return
-        //Haha, this forces it to crash.
-        TODO("Not yet implemented")
     }
 
     private fun onTouch(v: View, event: MotionEvent): Boolean {
@@ -181,13 +182,13 @@ class MainActivity : AppCompatActivity() {
         return true
     }
 
-    private fun increaseResolution() {
+    suspend fun increaseResolution() {
 //        lifecycleScope.launch(Dispatchers.Default) {
 //            //Do the Mathic!!
 //        }
         //or
-        val doIt = async(Dispatchers.Default) {calculateBuffer(xWave, yWave)}
-        val highResolutionBuffer = doIt.await()
+        val doIt = lifecycleScope.async(Dispatchers.Default) {calculateBuffer()}
+        //highResolutionBuffer = doIt.await()
         return
     }
 
@@ -204,15 +205,48 @@ class MainActivity : AppCompatActivity() {
         //mainMan!!.addView(dv)
     }
 
-    /**
-     * MediaPlayer: This class is the primary API for playing sound and video.
-     * AudioManager: This class manages audio sources and audio output on a device.
-     **/
-//    private fun playSound() {
-//        var attrs = AudioAttributes()
-//        var format = AudioFormat()
-//        var player = AudioTrack(AudioTrack.MODE_STATIC)
-//        return
-//    }
+    private fun calculateBuffer() {
 
+    }
+
+    private fun playSound() {
+        var attrs = AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA)
+            .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+            .build()
+        var format = AudioFormat.Builder()
+            .setEncoding(AudioFormat.ENCODING_PCM_FLOAT)//ToDo: Adjust amplitude range to (-1.0 to 1.0)
+            .setSampleRate(441000)//44.1 KHz ToDo: suggest change from analyzing line to reduce resolution increasing.
+            .build()
+        /** AudioFormat
+         * https://developer.android.com/reference/android/media/AudioFormat
+         * Encoding:
+         *    8 bit unsigned int (0 to 255 with 128 offset for zero)
+         *    16 bit short (-32768 to 32767)
+         *    32 bit float (-1.0 to 1.0)
+         */
+
+        val buffSize = xWave!!.size//ToDo: change to highResolutionBuffer!!.size
+        var sessionID = AudioManager.AUDIO_SESSION_ID_GENERATE//?
+
+        /**
+         * public AudioTrack (AudioAttributes attributes,
+         *                      AudioFormat format,
+         *                      int bufferSizeInBytes,
+         *                      int mode,
+         *                      int sessionId)
+         */
+        var player = AudioTrack(attrs, format, buffSize, AudioTrack.MODE_STATIC, sessionID)
+        //https://developer.android.com/reference/android/media/AudioTrack#write(float[],%20int,%20int,%20int)
+        //val float[] highResolutionBuffer
+        val offsetInFloats = 0
+        val sizeInFloats = buffSize.toFloat()
+
+        /**
+         * WRITE_BLOCKING: the write will block until all data has been written to the audio sink.
+         * WRITE_NON_BLOCKING: the write will return immediately after queuing as much audio data for playback as possible without blocking.
+         */
+        val writeMode = AudioTrack.WRITE_BLOCKING
+        //player.write(float[] audioData, int offsetInFloats, int sizeInFloats, int writeMode)
+        return
+    }
 }
