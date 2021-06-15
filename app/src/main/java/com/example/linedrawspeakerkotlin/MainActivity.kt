@@ -3,6 +3,8 @@ package com.example.linedrawspeakerkotlin
 import android.animation.ObjectAnimator
 import android.annotation.SuppressLint
 import android.content.pm.ActivityInfo
+import android.media.AudioAttributes
+import android.media.AudioTrack
 import android.os.Build
 import android.os.Build.VERSION
 import android.os.Bundle
@@ -179,13 +181,13 @@ class MainActivity : AppCompatActivity() {
         return true
     }
 
-    fun increaseResolution() {
-        lifecycleScope.launch(Dispatchers.Default) {
-            //Do the Mathic!!
-        }
+    private fun increaseResolution() {
+//        lifecycleScope.launch(Dispatchers.Default) {
+//            //Do the Mathic!!
+//        }
         //or
-        //val doIt = async(Dispatchers.Default) {Line2SoundBuffer.calculateBuffer(xWave, yWave)}
-        //val highResolutionBuffer = doIt.await()
+        val doIt = async(Dispatchers.Default) {calculateBuffer(xWave, yWave)}
+        val highResolutionBuffer = doIt.await()
         return
     }
 
@@ -202,7 +204,15 @@ class MainActivity : AppCompatActivity() {
         //mainMan!!.addView(dv)
     }
 
-    fun playSound() {
-        return
-    }
+    /**
+     * MediaPlayer: This class is the primary API for playing sound and video.
+     * AudioManager: This class manages audio sources and audio output on a device.
+     **/
+//    private fun playSound() {
+//        var attrs = AudioAttributes()
+//        var format = AudioFormat()
+//        var player = AudioTrack(AudioTrack.MODE_STATIC)
+//        return
+//    }
+
 }
