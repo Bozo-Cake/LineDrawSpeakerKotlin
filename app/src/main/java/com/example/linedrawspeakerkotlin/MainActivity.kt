@@ -15,7 +15,9 @@ import android.os.Vibrator
 import android.util.Log
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewGroup
 import android.widget.Button
+import android.widget.EditText
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
@@ -29,6 +31,7 @@ class MainActivity : AppCompatActivity() {
     private var mainMan: ConstraintLayout? = null
     private var dv: DrawView? = null
     private var dvAnimator: ObjectAnimator? = null
+    private var freqInput: EditText? = null
 
     private val TAG = "MAIN" //For Logs
 
@@ -37,11 +40,15 @@ class MainActivity : AppCompatActivity() {
     //private val vibrateAmp = 200 //1 - 255 for amplitude
 
     private val animateSize = 800f
+    private val defaultSampleRate = 44100
+    private val defaultFrequency = 10000
+    private var setFrequency = defaultFrequency
 
     private var vibrator: Vibrator? = null
     private var xWave: ArrayList<Float>? = null
     private var yWave: ArrayList<Float>? = null
     private var highResolutionBuffer: Array<Float>? = null
+
     @SuppressLint("ObjectAnimatorBinding")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -58,14 +65,28 @@ class MainActivity : AppCompatActivity() {
 
         //Move Drawing Canvas off of screen
         dv = findViewById(R.id.myCanvas2)
-
         dvAnimator = ObjectAnimator.ofFloat(dv, "translationY", animateSize).apply {
             duration = 1000
             start()
         }
         //dv!!.visibility = View.GONE
-        dv = null
 
+        //Edit Text on change listener
+        for (index in 0 until (dv as ViewGroup).childCount) {
+            val nextChild = (dv as ViewGroup).getChildAt(index)
+            if (nextChild is EditText) {
+                freqInput = nextChild
+                break;
+            }
+        }
+
+        freqInput?.onFocusChangeListener = View.OnFocusChangeListener { v, hasFocus ->
+            if (!hasFocus) {
+                setFrequency = freqInput!!.text.toString().toInt()
+                Log.d(TAG, "New frequency selected!")
+            }
+        }
+        dv = null
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -124,7 +145,7 @@ class MainActivity : AppCompatActivity() {
             var diffX: Float
             //var diffY: Float
             val waveSize = xWave!!.size
-            prompt!!.text = String.format("Drawing has %d points...", waveSize)
+            prompt!!.text = String.format("Drawing has %d/%d points...", waveSize, defaultSampleRate/setFrequency)
             //Update prev* values after at least one entry is saved.
             if (waveSize > 0) { //Should always be true because first entry is saved in OnTouch
                 prevX = xWave!![waveSize - 1]
@@ -206,7 +227,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun calculateBuffer() {
-
+        /**
+         * Rule of thumb, sample at least twice per cycle
+         * To achieve 44.1 KHz sampling rate
+         *  @20 Hz requires 2,205 samples per cycle
+         *  @20 KHz requires 2.205 samples per cycle
+         *  The sampling rate will change based on the desired frequency.
+         **/
     }
 
     private fun playSound() {
