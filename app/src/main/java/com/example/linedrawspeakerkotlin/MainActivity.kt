@@ -47,7 +47,7 @@ class MainActivity : AppCompatActivity() {
     private var vibrator: Vibrator? = null
     private var xWave: ArrayList<Float>? = null
     private var yWave: ArrayList<Float>? = null
-    private var highResolutionBuffer: Array<Float>? = null
+    private var audioBuffer: FloatArray? = null
 
     @SuppressLint("ObjectAnimatorBinding")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -71,18 +71,11 @@ class MainActivity : AppCompatActivity() {
         }
         //dv!!.visibility = View.GONE
 
-        //Edit Text on change listener
-        for (index in 0 until (dv as ViewGroup).childCount) {
-            val nextChild = (dv as ViewGroup).getChildAt(index)
-            if (nextChild is EditText) {
-                freqInput = nextChild
-                break;
-            }
-        }
 
         freqInput?.onFocusChangeListener = View.OnFocusChangeListener { v, hasFocus ->
-            if (!hasFocus) {
-                setFrequency = freqInput!!.text.toString().toInt()
+            Log.d(TAG, "Attempting to read new fequency")
+            if (!hasFocus && v.id == R.id.frequencySelector && v is EditText) {
+                setFrequency = v.text.toString().toInt()
                 Log.d(TAG, "New frequency selected!")
             }
         }
@@ -203,16 +196,6 @@ class MainActivity : AppCompatActivity() {
         return true
     }
 
-    suspend fun increaseResolution() {
-//        lifecycleScope.launch(Dispatchers.Default) {
-//            //Do the Mathic!!
-//        }
-        //or
-        val doIt = lifecycleScope.async(Dispatchers.Default) {calculateBuffer()}
-        //highResolutionBuffer = doIt.await()
-        return
-    }
-
     @SuppressLint("ObjectAnimatorBinding")
     private fun drawLine() {
         dv = findViewById(R.id.myCanvas2)
@@ -226,7 +209,13 @@ class MainActivity : AppCompatActivity() {
         //mainMan!!.addView(dv)
     }
 
-    private fun calculateBuffer() {
+    public fun letsHearIt(v: View) {
+        val doIt = lifecycleScope.async(Dispatchers.Default) {calculateBuffer()}
+        //audioBuffer = doIt.await()
+
+    }
+
+    private fun calculateBuffer(): FloatArray {
         /**
          * Rule of thumb, sample at least twice per cycle
          * To achieve 44.1 KHz sampling rate
@@ -234,9 +223,27 @@ class MainActivity : AppCompatActivity() {
          *  @20 KHz requires 2.205 samples per cycle
          *  The sampling rate will change based on the desired frequency.
          **/
+        //Get and update desired estimated frequency
+        freqInput = findViewById(R.id.frequencySelector)
+        setFrequency = freqInput?.text.toString().toInt()
+        if (setFrequency < 40) {
+            setFrequency = 40
+        }
+        else if (setFrequency > 21000) {
+            setFrequency
+        }
+        freqInput!!.setText(setFrequency)
+        Log.d(TAG, "New Frequency Set!")
+
+        val size = yWave!!.size
+        audioBuffer = FloatArray(size)
+        for (a in 0..size) {
+            audioBuffer!![a] = yWave!![a]
+        }
+        return audioBuffer!!
     }
 
-    private fun playSound() {
+    public fun playSound() {
         var attrs = AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA)
             .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
             .build()
@@ -274,6 +281,7 @@ class MainActivity : AppCompatActivity() {
          */
         val writeMode = AudioTrack.WRITE_BLOCKING
         //player.write(float[] audioData, int offsetInFloats, int sizeInFloats, int writeMode)
+        player.write(audioBuffer!!, 0, buffSize, writeMode)
         return
     }
 }
