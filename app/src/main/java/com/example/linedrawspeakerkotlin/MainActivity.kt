@@ -15,15 +15,15 @@ import android.os.Vibrator
 import android.util.Log
 import android.view.MotionEvent
 import android.view.View
-import android.view.ViewGroup
 import android.widget.Button
-import android.widget.EditText
+import android.widget.SeekBar
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.lifecycle.lifecycleScope
-import java.util.*
 import kotlinx.coroutines.*
+import java.util.*
 
 class MainActivity : AppCompatActivity() {
     private var prompt: TextView? = null
@@ -31,7 +31,8 @@ class MainActivity : AppCompatActivity() {
     private var mainMan: ConstraintLayout? = null
     private var dv: DrawView? = null
     private var dvAnimator: ObjectAnimator? = null
-    private var freqInput: EditText? = null
+    private var freqInput: SeekBar? = null
+    private var freqView: TextView? = null
 
     private val TAG = "MAIN" //For Logs
 
@@ -69,16 +70,34 @@ class MainActivity : AppCompatActivity() {
             duration = 1000
             start()
         }
-        //dv!!.visibility = View.GONE
 
+        //Todo: Animate command palate out of view
 
-        freqInput?.onFocusChangeListener = View.OnFocusChangeListener { v, hasFocus ->
-            Log.d(TAG, "Attempting to read new fequency")
-            if (!hasFocus && v.id == R.id.frequencySelector && v is EditText) {
-                setFrequency = v.text.toString().toInt()
-                Log.d(TAG, "New frequency selected!")
+        //set frequencyInput selector onProgressUpdate listener
+        freqInput = findViewById(R.id.frequencySelector)
+        freqInput?.setOnSeekBarChangeListener(object :
+            SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seek: SeekBar,
+                                           progress: Int, fromUser: Boolean) {
+                // Update FreqView UI
+                freqView = findViewById(R.id.freqView)
+                freqView!!.text = "${seek.progress} Hz"
+                setFrequency = progress
+                //ToDo: Play tone feedback respective to changing value
             }
-        }
+
+            override fun onStartTrackingTouch(seek: SeekBar) {
+                return
+            }
+
+            override fun onStopTrackingTouch(seek: SeekBar) {
+                // write custom code for progress is stopped
+                Toast.makeText(this@MainActivity,
+                    "Verified Frequency is $setFrequency Hz",
+                    Toast.LENGTH_SHORT).show()
+
+            }
+        })
         dv = null
     }
 
@@ -223,17 +242,6 @@ class MainActivity : AppCompatActivity() {
          *  @20 KHz requires 2.205 samples per cycle
          *  The sampling rate will change based on the desired frequency.
          **/
-        //Get and update desired estimated frequency
-        freqInput = findViewById(R.id.frequencySelector)
-        setFrequency = freqInput?.text.toString().toInt()
-        if (setFrequency < 40) {
-            setFrequency = 40
-        }
-        else if (setFrequency > 21000) {
-            setFrequency
-        }
-        freqInput!!.setText(setFrequency)
-        Log.d(TAG, "New Frequency Set!")
 
         val size = yWave!!.size
         audioBuffer = FloatArray(size)
