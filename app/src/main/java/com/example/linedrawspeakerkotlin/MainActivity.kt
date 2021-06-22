@@ -64,6 +64,7 @@ class MainActivity : AppCompatActivity() {
         action?.setOnClickListener { letsDraw() }
         prompt?.text = getString(R.string.letUsBegin)
 
+        //https://developer.android.com/training/animation
         //Move Drawing Canvas off of screen
         dv = findViewById(R.id.myCanvas2)
         dvAnimator = ObjectAnimator.ofFloat(dv, "translationY", animateSize).apply {
