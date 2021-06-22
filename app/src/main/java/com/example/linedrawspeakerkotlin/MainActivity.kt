@@ -86,7 +86,6 @@ class MainActivity : AppCompatActivity() {
     private fun letsDraw() {
         //Build Canvas and Activate
         dv = findViewById(R.id.myCanvas2)
-        //dv!!.visibility = View.VISIBLE
         mainMan!!.setOnTouchListener { v, event -> this.onTouch(v, event) }
         prompt!!.text = "Redraw to Redraw"
         action!!.text = "Save"
@@ -116,11 +115,12 @@ class MainActivity : AppCompatActivity() {
         //OnRelease
         if (event.action == MotionEvent.ACTION_UP) {
             prompt!!.text = "Redraw to Redraw, or Save I.t."
+            //ToDo: Animate command palate into view.
             drawLine()
-            //increaseResolution()
         }
         //OnTouch
         if (event.action == MotionEvent.ACTION_DOWN) {
+            //ToDo: Animate command palate out of view
             prompt!!.setText(R.string.pressed)
             xWave = ArrayList()
             yWave = ArrayList()
