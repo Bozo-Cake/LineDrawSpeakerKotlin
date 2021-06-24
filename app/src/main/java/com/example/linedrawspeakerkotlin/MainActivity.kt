@@ -15,10 +15,7 @@ import android.os.Vibrator
 import android.util.Log
 import android.view.MotionEvent
 import android.view.View
-import android.widget.Button
-import android.widget.SeekBar
-import android.widget.TextView
-import android.widget.Toast
+import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.lifecycle.lifecycleScope
@@ -33,6 +30,7 @@ class MainActivity : AppCompatActivity() {
     private var dvAnimator: ObjectAnimator? = null
     private var freqInput: SeekBar? = null
     private var freqView: TextView? = null
+    private var autoFreq: Switch? = null
 
     private val TAG = "MAIN" //For Logs
 
@@ -100,6 +98,11 @@ class MainActivity : AppCompatActivity() {
             }
         })
         dv = null
+
+        /**
+         * ToDo: Vertical orientation mode ->
+         * automatically slide screen to the left, user will only side up and down
+        **/
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -243,8 +246,12 @@ class MainActivity : AppCompatActivity() {
          *  @20 KHz requires 2.205 samples per cycle
          *  The sampling rate will change based on the desired frequency.
          **/
-
         val size = yWave!!.size
+        var sampleRate = defaultSampleRate
+        autoFreq = findViewById(R.id.autoSmplRate)
+        if (autoFreq!!.isActivated) {
+            sampleRate = size * setFrequency
+        }
         audioBuffer = FloatArray(size)
         for (a in 0..size) {
             audioBuffer!![a] = yWave!![a]
@@ -268,7 +275,7 @@ class MainActivity : AppCompatActivity() {
          *    32 bit float (-1.0 to 1.0)
          */
 
-        val buffSize = xWave!!.size//ToDo: change to highResolutionBuffer!!.size
+        val buffSize = audioBuffer!!.size
         var sessionID = AudioManager.AUDIO_SESSION_ID_GENERATE//?
 
         /**
