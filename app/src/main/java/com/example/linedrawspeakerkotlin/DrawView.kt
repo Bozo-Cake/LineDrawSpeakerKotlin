@@ -1,5 +1,6 @@
 package com.example.linedrawspeakerkotlin
 
+import android.animation.ObjectAnimator
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
@@ -40,7 +41,6 @@ class DrawView : LinearLayout {
         paint!!.color = Color.BLUE
         paint!!.strokeWidth = 3f
         while (i < xWave!!.size - 1) {
-            Log.d(TAG, String.format("Drawing Line %d", i))
             canvas.drawLine(xWave!![i], yWave!![i], xWave!![i + 1], yWave!![i + 1], paint!!)
             i++
         }

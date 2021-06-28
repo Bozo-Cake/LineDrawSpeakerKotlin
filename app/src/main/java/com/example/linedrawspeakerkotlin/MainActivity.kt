@@ -18,8 +18,10 @@ import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.core.view.doOnPreDraw
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.*
+import org.w3c.dom.Text
 import java.util.*
 
 class MainActivity : AppCompatActivity() {
@@ -28,19 +30,20 @@ class MainActivity : AppCompatActivity() {
     private var mainMan: ConstraintLayout? = null
     private var dv: DrawView? = null
     private var dvAnimator: ObjectAnimator? = null
+    private var cpAnimator: ObjectAnimator? = null
     private var freqInput: SeekBar? = null
     private var freqView: TextView? = null
     private var autoFreq: Switch? = null
+    private var commandPalate: ConstraintLayout? = null
+    private var coordinateView: TextView? = null
 
     private val TAG = "MAIN" //For Logs
 
     private val vibThresh = 10f
     private val vibrateTime = 100L //ms
-    //private val vibrateAmp = 200 //1 - 255 for amplitude
-
-    private val animateSize = 800f
     private val defaultSampleRate = 44100
-    private val defaultFrequency = 10000
+    private var sampleRate = defaultSampleRate
+    private val defaultFrequency = 262
     private var setFrequency = defaultFrequency
 
     private var vibrator: Vibrator? = null
@@ -63,14 +66,18 @@ class MainActivity : AppCompatActivity() {
         prompt?.text = getString(R.string.letUsBegin)
 
         //https://developer.android.com/training/animation
-        //Move Drawing Canvas off of screen
         dv = findViewById(R.id.myCanvas2)
-        dvAnimator = ObjectAnimator.ofFloat(dv, "translationY", animateSize).apply {
+        dvAnimator = ObjectAnimator.ofFloat(dv, "alpha", 0.5f).apply {
             duration = 1000
             start()
         }
 
-        //Todo: Animate command palate out of view
+        commandPalate = findViewById(R.id.commandPalate)
+        cpAnimator = ObjectAnimator.ofFloat(commandPalate, "translationY",
+            resources.getDimension(R.dimen.commandPalateHeight) * -1
+        ).apply {
+            duration = 500
+        }
 
         //set frequencyInput selector onProgressUpdate listener
         freqInput = findViewById(R.id.frequencySelector)
@@ -122,7 +129,6 @@ class MainActivity : AppCompatActivity() {
         //Delete or change any Views strictly associated with drawing.
         prompt!!.text = "Line Saved?"
         dvAnimator!!.start()
-        //dv!!.visibility = View.GONE
         dv = null
         action!!.text = "Draw"
         //Remove or update any onclickListeners.
@@ -138,12 +144,13 @@ class MainActivity : AppCompatActivity() {
         //OnRelease
         if (event.action == MotionEvent.ACTION_UP) {
             prompt!!.text = "Redraw to Redraw, or Save I.t."
-            //ToDo: Animate command palate into view.
+            cpAnimator?.reverse()
             drawLine()
         }
         //OnTouch
         if (event.action == MotionEvent.ACTION_DOWN) {
-            //ToDo: Animate command palate out of view
+            coordinateView = findViewById(R.id.debugCoordinates)
+            cpAnimator?.start()
             prompt!!.setText(R.string.pressed)
             xWave = ArrayList()
             yWave = ArrayList()
@@ -155,6 +162,8 @@ class MainActivity : AppCompatActivity() {
             //A motion event seems to have 0 - 4 coordinates in each.
             val lastX = event.x
             val lastY: Float = event.y
+            coordinateView?.text = String.format("X: %f, Y: %f", lastX, lastY)
+
             //If prev* don't update, you'll see a line from top corner to first touch.
             var prevX = 0f
             var prevY = 0f
@@ -224,21 +233,17 @@ class MainActivity : AppCompatActivity() {
         dv = findViewById(R.id.myCanvas2)
         dv!!.setCoordinates(xWave!!, yWave!!)
         dv!!.invalidate()
-
-        //dv!!.setBackgroundColor(Color.WHITE)
-        //dv!!.id = R.id.myCanvas
-        //dv!!.layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
         Log.d(TAG, "Adding myCanvas to mainActivity")
-        //mainMan!!.addView(dv)
     }
 
     public fun letsHearIt(v: View) {
+        calculateBuffer()
         val doIt = lifecycleScope.async(Dispatchers.Default) {calculateBuffer()}
         //audioBuffer = doIt.await()
 
     }
 
-    private fun calculateBuffer(): FloatArray {
+    public fun calculateBuffer(): FloatArray {
         /**
          * Rule of thumb, sample at least twice per cycle
          * To achieve 44.1 KHz sampling rate
@@ -253,8 +258,16 @@ class MainActivity : AppCompatActivity() {
             sampleRate = size * setFrequency
         }
         audioBuffer = FloatArray(size)
-        for (a in 0..size) {
-            audioBuffer!![a] = yWave!![a]
+        val viewHeight = dv?.height
+//        val lineMax = yWave!!.maxOrNull() //Smaller Logical value
+//        val lineMin = yWave!!.minOrNull() //Larger Logical value
+//        val lineHeight = lineMax!! - lineMin!!
+//        val topView2Line = (viewHeight!! - lineHeight!!) / 2f
+//        val shiftDiff = topView2Line - lineMax
+        val shiftDiff = viewHeight!! / 2f
+        for (a in 0 until size) {
+            audioBuffer!![a] = (yWave!![a] - shiftDiff) / -viewHeight!!
+            Log.d(TAG, String.format("Point %d: %f -> %f", a, yWave!![a], audioBuffer!![a]))
         }
         return audioBuffer!!
     }
@@ -265,7 +278,7 @@ class MainActivity : AppCompatActivity() {
             .build()
         var format = AudioFormat.Builder()
             .setEncoding(AudioFormat.ENCODING_PCM_FLOAT)//ToDo: Adjust amplitude range to (-1.0 to 1.0)
-            .setSampleRate(441000)//44.1 KHz ToDo: suggest change from analyzing line to reduce resolution increasing.
+            .setSampleRate(sampleRate)//44.1 KHz ToDo: suggest change from analyzing line to reduce resolution increasing.
             .build()
         /** AudioFormat
          * https://developer.android.com/reference/android/media/AudioFormat
