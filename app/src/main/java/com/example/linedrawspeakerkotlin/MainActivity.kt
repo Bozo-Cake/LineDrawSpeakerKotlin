@@ -22,6 +22,7 @@ import androidx.core.view.doOnPreDraw
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.*
 import org.w3c.dom.Text
+import java.nio.file.Files.size
 import java.util.*
 
 class MainActivity : AppCompatActivity() {
@@ -239,78 +240,55 @@ class MainActivity : AppCompatActivity() {
 
     public fun letsHearIt(v: View) {
         calculateBuffer()
+
+        //the following need to be put in their own suspend function and called from there.
         //val doIt = lifecycleScope.async(Dispatchers.Default) {calculateBuffer()}
         //audioBuffer = doIt.await()
         playSound()
     }
 
-    public fun calculateBuffer(): FloatArray {
-        /**
-         * Rule of thumb, sample at least twice per cycle
-         * To achieve 44.1 KHz sampling rate
-         *  @20 Hz requires 2,205 samples per cycle
-         *  @20 KHz requires 2.205 samples per cycle
-         *  The sampling rate will change based on the desired frequency.
-         **/
+    private fun calculateBuffer(): FloatArray {
+        //Size of each cycle
         val size = yWave!!.size
+        //sample rate = samples/cycle * frequency
         var sampleRate = defaultSampleRate
+        //easier to adjust sampleRate based on # of coordinates in drawn line and setFrequency
         autoFreq = findViewById(R.id.autoSmplRate)
         if (autoFreq!!.isActivated) {
             sampleRate = size * setFrequency
         }
-        audioBuffer = FloatArray(size)
+        //audioBuffer.Size = samplesRate * playTime
+        audioBuffer = FloatArray(size * setFrequency * playTime / 1000)
+
+        //map drawing coordinates to +-1.0f for AudioTrack.write()
         val viewHeight = dv?.height
-//        val lineMax = yWave!!.maxOrNull() //Smaller Logical value
-//        val lineMin = yWave!!.minOrNull() //Larger Logical value
-//        val lineHeight = lineMax!! - lineMin!!
-//        val topView2Line = (viewHeight!! - lineHeight!!) / 2f
-//        val shiftDiff = topView2Line - lineMax
         val shiftDiff = viewHeight!! / 2f
         for (a in 0 until size) {
-            audioBuffer!![a] = (yWave!![a] - shiftDiff) / -viewHeight!!
+            audioBuffer!![a] = (yWave!![a] - shiftDiff) / -viewHeight!! //Negative to invert +- values
             Log.d(TAG, String.format("Point %d: %f -> %f", a, yWave!![a], audioBuffer!![a]))
         }
+
+        //ToDo: Repeat the buffer cycle to play as long as playTime specifies
         return audioBuffer!!
     }
 
     public fun playSound() {
-        var attrs = AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA)
-            .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+        val buffSize = audioBuffer!!.size * (java.lang.Float.SIZE / 8)
+        val player = AudioTrack.Builder()
+            .setAudioAttributes(AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_MEDIA)
+                .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                .build())
+            .setAudioFormat(AudioFormat.Builder()
+                .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
+                .setEncoding(AudioFormat.ENCODING_PCM_FLOAT)
+                .setSampleRate(sampleRate)
+                .build())
+            .setBufferSizeInBytes(buffSize)
             .build()
-        var format = AudioFormat.Builder()
-            .setEncoding(AudioFormat.ENCODING_PCM_FLOAT)
-            .setSampleRate(sampleRate)//44.1 KHz ToDo: suggest change from analyzing line to reduce resolution increasing.
-            .build()
-        /** AudioFormat
-         * https://developer.android.com/reference/android/media/AudioFormat
-         * Encoding:
-         *    8 bit unsigned int (0 to 255 with 128 offset for zero)
-         *    16 bit short (-32768 to 32767)
-         *    32 bit float (-1.0 to 1.0)
-         */
 
-        val buffSize = audioBuffer!!.size
-        var sessionID = AudioManager.AUDIO_SESSION_ID_GENERATE//?
-
-        /**
-         * public AudioTrack (AudioAttributes attributes,
-         *                      AudioFormat format,
-         *                      int bufferSizeInBytes,
-         *                      int mode,
-         *                      int sessionId)
-         */
-        var player = AudioTrack(attrs, format, buffSize, AudioTrack.MODE_STATIC, sessionID)
-        //https://developer.android.com/reference/android/media/AudioTrack#write(float[],%20int,%20int,%20int)
-        //val float[] highResolutionBuffer
-        val offsetInFloats = 0
-        val sizeInFloats = buffSize.toFloat()
-
-        /**
-         * WRITE_BLOCKING: the write will block until all data has been written to the audio sink.
-         * WRITE_NON_BLOCKING: the write will return immediately after queuing as much audio data for playback as possible without blocking.
-         */
         val writeMode = AudioTrack.WRITE_BLOCKING
-        //player.write(float[] audioData, int offsetInFloats, int sizeInFloats, int writeMode)
+        Log.d(TAG, String.format("ArrayCount: ${audioBuffer!!.size}, BufferSize: $buffSize"))//buffSize is currently 4 * audioBuffer!!.size
         player.write(audioBuffer!!, 0, buffSize, writeMode)
         return
     }
