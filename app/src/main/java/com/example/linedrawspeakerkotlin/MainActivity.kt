@@ -45,6 +45,7 @@ class MainActivity : AppCompatActivity() {
     private var sampleRate = defaultSampleRate
     private val defaultFrequency = 262
     private var setFrequency = defaultFrequency
+    private val playTime = 2000 //ms
 
     private var vibrator: Vibrator? = null
     private var xWave: ArrayList<Float>? = null
@@ -238,9 +239,9 @@ class MainActivity : AppCompatActivity() {
 
     public fun letsHearIt(v: View) {
         calculateBuffer()
-        val doIt = lifecycleScope.async(Dispatchers.Default) {calculateBuffer()}
+        //val doIt = lifecycleScope.async(Dispatchers.Default) {calculateBuffer()}
         //audioBuffer = doIt.await()
-
+        playSound()
     }
 
     public fun calculateBuffer(): FloatArray {
@@ -277,7 +278,7 @@ class MainActivity : AppCompatActivity() {
             .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
             .build()
         var format = AudioFormat.Builder()
-            .setEncoding(AudioFormat.ENCODING_PCM_FLOAT)//ToDo: Adjust amplitude range to (-1.0 to 1.0)
+            .setEncoding(AudioFormat.ENCODING_PCM_FLOAT)
             .setSampleRate(sampleRate)//44.1 KHz ToDo: suggest change from analyzing line to reduce resolution increasing.
             .build()
         /** AudioFormat
