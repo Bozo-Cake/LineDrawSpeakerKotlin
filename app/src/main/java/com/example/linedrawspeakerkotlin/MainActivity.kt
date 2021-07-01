@@ -249,30 +249,41 @@ class MainActivity : AppCompatActivity() {
 
     private fun calculateBuffer(): FloatArray {
         //Size of each cycle
-        val size = yWave!!.size
+        val waveSize = yWave!!.size
         //sample rate = samples/cycle * frequency
         var sampleRate = defaultSampleRate
         //easier to adjust sampleRate based on # of coordinates in drawn line and setFrequency
         autoFreq = findViewById(R.id.autoSmplRate)
         if (autoFreq!!.isActivated) {
-            sampleRate = size * setFrequency
+            sampleRate = waveSize * setFrequency
         }
+
         //audioBuffer.Size = samplesRate * playTime
-        audioBuffer = FloatArray(size * setFrequency * playTime / 1000)
+        var tempAudioBuffer = FloatArray(waveSize)
 
         //map drawing coordinates to +-1.0f for AudioTrack.write()
         val viewHeight = dv?.height
         val shiftDiff = viewHeight!! / 2f
-        for (a in 0 until size) {
-            audioBuffer!![a] = (yWave!![a] - shiftDiff) / -viewHeight!! //Negative to invert +- values
-            Log.d(TAG, String.format("Point %d: %f -> %f", a, yWave!![a], audioBuffer!![a]))
+        for (a in 0 until waveSize) {
+            tempAudioBuffer[a] = (yWave!![a] - shiftDiff) / -viewHeight!! //Negative to invert +- values
+            Log.d(TAG, String.format("Point %d: %f -> %f", a, yWave!![a], tempAudioBuffer[a]))
         }
 
-        //ToDo: Repeat the buffer cycle to play as long as playTime specifies
+        val playBufferSize = waveSize * setFrequency * playTime / 1000
+        Log.d(TAG, String.format("Stats:\nWaveSamples: $waveSize\nFreq: $setFrequency\nPlayTime: $playTime ms\nAudioBufferSize: $playBufferSize"))
+        audioBuffer = FloatArray(playBufferSize)
+        var i = 0
+        for (f in 0 until (playBufferSize/waveSize)) { //Number of cycles = Frequency (Hz) * Time (s)
+            for (p in 0 until waveSize) {//Points per cycle
+                audioBuffer!![i++] = tempAudioBuffer[p]
+            }
+        }
+        Log.d(TAG, String.format("Stats:\nWaveSamples: $waveSize\nFreq: $setFrequency\nPlayTime: $playTime ms\nAudioBufferSize: ${audioBuffer!!.size}"))
         return audioBuffer!!
     }
 
     public fun playSound() {
+        Log.d(TAG, "Attempting to play Sound with your ghetto line :)")
         val buffSize = audioBuffer!!.size * (java.lang.Float.SIZE / 8)
         val player = AudioTrack.Builder()
             .setAudioAttributes(AudioAttributes.Builder()
