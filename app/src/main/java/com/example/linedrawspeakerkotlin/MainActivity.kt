@@ -24,6 +24,7 @@ import kotlinx.coroutines.*
 import org.w3c.dom.Text
 import java.nio.file.Files.size
 import java.util.*
+import kotlin.math.sin
 
 class MainActivity : AppCompatActivity() {
     private var prompt: TextView? = null
@@ -247,11 +248,11 @@ class MainActivity : AppCompatActivity() {
         playSound()
     }
 
-    private fun calculateBuffer(): FloatArray {
+    private fun calculateBuffer() {
         //Size of each cycle
         val waveSize = yWave!!.size
         //sample rate = samples/cycle * frequency
-        var sampleRate = defaultSampleRate
+        sampleRate = defaultSampleRate
         //easier to adjust sampleRate based on # of coordinates in drawn line and setFrequency
         autoFreq = findViewById(R.id.autoSmplRate)
         if (autoFreq!!.isActivated) {
@@ -279,10 +280,22 @@ class MainActivity : AppCompatActivity() {
             }
         }
         Log.d(TAG, String.format("Stats:\nWaveSamples: $waveSize\nFreq: $setFrequency\nPlayTime: $playTime ms\nAudioBufferSize: ${audioBuffer!!.size}"))
-        return audioBuffer!!
+        //return audioBuffer!!
+    }
+    private fun calculatePureSignBuffer(f: Int, t: Int, s: Int) {
+        val sampleCount = s * t and 1.inv() //Even counts only
+        Log.i(TAG, "Count: $sampleCount")
+        val samples = FloatArray(sampleCount)
+        var i = 0
+        while (i < sampleCount) {
+            val sample = (sin(Math.PI * i / (s / f))).toFloat()
+            samples[i + 0] = sample
+            samples[i + 1] = sample
+            i += 2
+        }
     }
 
-    public fun playSound() {
+    fun playSound() {
         Log.d(TAG, "Attempting to play Sound with your ghetto line :)")
         val buffSize = audioBuffer!!.size * (java.lang.Float.SIZE / 8)
         val player = AudioTrack.Builder()
