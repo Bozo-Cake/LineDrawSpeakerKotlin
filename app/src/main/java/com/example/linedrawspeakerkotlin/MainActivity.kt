@@ -3,7 +3,6 @@ package com.example.linedrawspeakerkotlin
 import android.animation.ObjectAnimator
 import android.annotation.SuppressLint
 import android.content.pm.ActivityInfo
-import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioManager
 import android.media.AudioTrack
@@ -18,11 +17,7 @@ import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
-import androidx.core.view.doOnPreDraw
-import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.*
-import org.w3c.dom.Text
-import java.nio.file.Files.size
 import java.util.*
 import kotlin.math.sin
 
@@ -240,12 +235,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     public fun letsHearIt(v: View) {
-        calculateBuffer()
-
+        //calculateBuffer()
+        sampleRate = defaultSampleRate
+        setFrequency = 270
+        calculatePureSignBuffer(setFrequency, 60, sampleRate).play()
         //the following need to be put in their own suspend function and called from there.
         //val doIt = lifecycleScope.async(Dispatchers.Default) {calculateBuffer()}
         //audioBuffer = doIt.await()
-        playSound()
+        //playSound()
     }
 
     private fun calculateBuffer() {
@@ -255,8 +252,9 @@ class MainActivity : AppCompatActivity() {
         sampleRate = defaultSampleRate
         //easier to adjust sampleRate based on # of coordinates in drawn line and setFrequency
         autoFreq = findViewById(R.id.autoSmplRate)
-        if (autoFreq!!.isActivated) {
+        if (autoFreq!!.isChecked) {
             sampleRate = waveSize * setFrequency
+            Log.d(TAG, "Sample Rate is now $sampleRate")
         }
 
         //audioBuffer.Size = samplesRate * playTime
@@ -267,7 +265,7 @@ class MainActivity : AppCompatActivity() {
         val shiftDiff = viewHeight!! / 2f
         for (a in 0 until waveSize) {
             tempAudioBuffer[a] = (yWave!![a] - shiftDiff) / -viewHeight!! //Negative to invert +- values
-            Log.d(TAG, String.format("Point %d: %f -> %f", a, yWave!![a], tempAudioBuffer[a]))
+            //Log.d(TAG, String.format("Point %d: %f -> %f", a, yWave!![a], tempAudioBuffer[a]))
         }
 
         val playBufferSize = waveSize * setFrequency * playTime / 1000
@@ -279,41 +277,48 @@ class MainActivity : AppCompatActivity() {
                 audioBuffer!![i++] = tempAudioBuffer[p]
             }
         }
-        Log.d(TAG, String.format("Stats:\nWaveSamples: $waveSize\nFreq: $setFrequency\nPlayTime: $playTime ms\nAudioBufferSize: ${audioBuffer!!.size}"))
         //return audioBuffer!!
     }
-    private fun calculatePureSignBuffer(f: Int, t: Int, s: Int) {
-        val sampleCount = s * t and 1.inv() //Even counts only
+    private fun calculatePureSignBuffer(freq: Int, time: Int, localSampleRate: Int): AudioTrack {
+        val sampleCount = localSampleRate * time and 1.inv() //Even counts only
         Log.i(TAG, "Count: $sampleCount")
         val samples = FloatArray(sampleCount)
         var i = 0
         while (i < sampleCount) {
-            val sample = (sin(Math.PI * i / (s / f))).toFloat()
+            val sample = (sin(Math.PI * i / (localSampleRate / freq))).toFloat()
             samples[i + 0] = sample
             samples[i + 1] = sample
             i += 2
         }
+        val track = AudioTrack(AudioManager.STREAM_MUSIC, 44100,
+            AudioFormat.CHANNEL_OUT_STEREO, AudioFormat.ENCODING_PCM_FLOAT,
+            sampleCount * (java.lang.Short.SIZE / 8), AudioTrack.MODE_STATIC)
+        track.write(samples, 0, sampleCount, AudioTrack.WRITE_BLOCKING)
+        return track
     }
 
     fun playSound() {
         Log.d(TAG, "Attempting to play Sound with your ghetto line :)")
         val buffSize = audioBuffer!!.size * (java.lang.Float.SIZE / 8)
-        val player = AudioTrack.Builder()
-            .setAudioAttributes(AudioAttributes.Builder()
-                .setUsage(AudioAttributes.USAGE_MEDIA)
-                .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                .build())
-            .setAudioFormat(AudioFormat.Builder()
-                .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
-                .setEncoding(AudioFormat.ENCODING_PCM_FLOAT)
-                .setSampleRate(sampleRate)
-                .build())
-            .setBufferSizeInBytes(buffSize)
-            .build()
+//        val player = AudioTrack.Builder()
+//            .setAudioAttributes(AudioAttributes.Builder()
+//                .setUsage(AudioAttributes.USAGE_MEDIA)
+//                .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+//                .build())
+//            .setAudioFormat(AudioFormat.Builder()
+//                .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
+//                .setEncoding(AudioFormat.ENCODING_PCM_FLOAT)
+//                .setSampleRate(sampleRate)
+//                .build())
+//            .setBufferSizeInBytes(buffSize)
+//            .build()
+        val player = AudioTrack(AudioManager.STREAM_MUSIC, sampleRate,
+            AudioFormat.CHANNEL_OUT_STEREO, AudioFormat.ENCODING_PCM_FLOAT,
+            buffSize, AudioTrack.MODE_STATIC)
 
         val writeMode = AudioTrack.WRITE_BLOCKING
-        Log.d(TAG, String.format("ArrayCount: ${audioBuffer!!.size}, BufferSize: $buffSize"))//buffSize is currently 4 * audioBuffer!!.size
-        player.write(audioBuffer!!, 0, buffSize, writeMode)
+        Log.d(TAG, String.format("More Stats\nArrayCount: ${audioBuffer!!.size}\nBufferSize: $buffSize\nSampleRate: $sampleRate"))//buffSize is currently 4 * audioBuffer!!.size
+        player.write(audioBuffer!!, 0, audioBuffer!!.size, writeMode)
         return
     }
 }
