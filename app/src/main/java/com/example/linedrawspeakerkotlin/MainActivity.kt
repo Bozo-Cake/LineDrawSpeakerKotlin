@@ -20,6 +20,7 @@ import androidx.constraintlayout.widget.ConstraintLayout
 import kotlinx.coroutines.*
 import java.util.*
 import kotlin.math.sin
+//https://commons.apache.org/proper/commons-math/javadocs/api-3.5/org/apache/commons/math3/fitting/HarmonicCurveFitter.html
 
 class MainActivity : AppCompatActivity() {
     private var prompt: TextView? = null
@@ -235,14 +236,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     public fun letsHearIt(v: View) {
-        //calculateBuffer()
-        sampleRate = defaultSampleRate
-        setFrequency = 270
-        calculatePureSignBuffer(setFrequency, 60, sampleRate).play()
+        calculateBuffer()
+        playSound()
+//        sampleRate = defaultSampleRate
+//        calculatePureSignBuffer(setFrequency, 2, sampleRate).play()
         //the following need to be put in their own suspend function and called from there.
         //val doIt = lifecycleScope.async(Dispatchers.Default) {calculateBuffer()}
         //audioBuffer = doIt.await()
-        //playSound()
+
     }
 
     private fun calculateBuffer() {
@@ -258,14 +259,15 @@ class MainActivity : AppCompatActivity() {
         }
 
         //audioBuffer.Size = samplesRate * playTime
-        var tempAudioBuffer = FloatArray(waveSize)
+        var tempAudioBuffer = FloatArray(sampleRate)
 
         //map drawing coordinates to +-1.0f for AudioTrack.write()
         val viewHeight = dv?.height
         val shiftDiff = viewHeight!! / 2f
-        for (a in 0 until waveSize) {
+        //ToDo: finish increment-by-step math
+        for (a in 0 until sampleRate step waveSize/(sampleRate/setFrequency)) {
             tempAudioBuffer[a] = (yWave!![a] - shiftDiff) / -viewHeight!! //Negative to invert +- values
-            //Log.d(TAG, String.format("Point %d: %f -> %f", a, yWave!![a], tempAudioBuffer[a]))
+            Log.d(TAG, String.format("Point %d: %f -> %f", a, yWave!![a], tempAudioBuffer[a]))
         }
 
         val playBufferSize = waveSize * setFrequency * playTime / 1000
@@ -273,14 +275,14 @@ class MainActivity : AppCompatActivity() {
         audioBuffer = FloatArray(playBufferSize)
         var i = 0
         for (f in 0 until (playBufferSize/waveSize)) { //Number of cycles = Frequency (Hz) * Time (s)
-            for (p in 0 until waveSize) {//Points per cycle
+            for (p in 0 until sampleRate) {//Points per cycle
                 audioBuffer!![i++] = tempAudioBuffer[p]
             }
         }
         //return audioBuffer!!
     }
     private fun calculatePureSignBuffer(freq: Int, time: Int, localSampleRate: Int): AudioTrack {
-        val sampleCount = localSampleRate * time and 1.inv() //Even counts only
+        val sampleCount = 2 * localSampleRate * time and 1.inv() //Even counts only, double it because it only plays half the set time.
         Log.i(TAG, "Count: $sampleCount")
         val samples = FloatArray(sampleCount)
         var i = 0
@@ -290,9 +292,9 @@ class MainActivity : AppCompatActivity() {
             samples[i + 1] = sample
             i += 2
         }
-        val track = AudioTrack(AudioManager.STREAM_MUSIC, 44100,
+        val track = AudioTrack(AudioManager.STREAM_MUSIC, localSampleRate,
             AudioFormat.CHANNEL_OUT_STEREO, AudioFormat.ENCODING_PCM_FLOAT,
-            sampleCount * (java.lang.Short.SIZE / 8), AudioTrack.MODE_STATIC)
+            sampleCount * (java.lang.Float.SIZE / 8), AudioTrack.MODE_STATIC)
         track.write(samples, 0, sampleCount, AudioTrack.WRITE_BLOCKING)
         return track
     }
@@ -314,11 +316,10 @@ class MainActivity : AppCompatActivity() {
 //            .build()
         val player = AudioTrack(AudioManager.STREAM_MUSIC, sampleRate,
             AudioFormat.CHANNEL_OUT_STEREO, AudioFormat.ENCODING_PCM_FLOAT,
-            buffSize, AudioTrack.MODE_STATIC)
+            buffSize, AudioTrack.WRITE_BLOCKING)
 
-        val writeMode = AudioTrack.WRITE_BLOCKING
         Log.d(TAG, String.format("More Stats\nArrayCount: ${audioBuffer!!.size}\nBufferSize: $buffSize\nSampleRate: $sampleRate"))//buffSize is currently 4 * audioBuffer!!.size
-        player.write(audioBuffer!!, 0, audioBuffer!!.size, writeMode)
+        player.write(audioBuffer!!, 0, audioBuffer!!.size, AudioTrack.WRITE_BLOCKING)
         return
     }
 }
