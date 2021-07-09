@@ -11,6 +11,7 @@ import android.os.Build.VERSION
 import android.os.Bundle
 import android.os.VibrationEffect
 import android.os.Vibrator
+import android.util.DisplayMetrics
 import android.util.Log
 import android.view.MotionEvent
 import android.view.View
@@ -31,7 +32,6 @@ class MainActivity : AppCompatActivity() {
     private var cpAnimator: ObjectAnimator? = null
     private var freqInput: SeekBar? = null
     private var freqView: TextView? = null
-    private var autoFreq: Switch? = null
     private var commandPalate: ConstraintLayout? = null
     private var coordinateView: TextView? = null
 
@@ -103,7 +103,14 @@ class MainActivity : AppCompatActivity() {
 
             }
         })
-        dv = null
+
+        //Draw pure sine wave by default
+        val displayMetrics = DisplayMetrics()
+        windowManager.defaultDisplay.getMetrics(displayMetrics)
+        var width = displayMetrics.widthPixels
+        var height = displayMetrics.heightPixels
+        calculateSingleSineWave(width, height)
+        drawLine()
 
         /**
          * ToDo: Vertical orientation mode ->
@@ -247,56 +254,39 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun calculateBuffer() {
-        //Size of each cycle
-        val waveSize = yWave!!.size
-        //sample rate = samples/cycle * frequency
-        sampleRate = defaultSampleRate
-        //easier to adjust sampleRate based on # of coordinates in drawn line and setFrequency
-        autoFreq = findViewById(R.id.autoSmplRate)
-        if (autoFreq!!.isChecked) {
-            sampleRate = waveSize * setFrequency
-            Log.d(TAG, "Sample Rate is now $sampleRate")
-        }
-
         //audioBuffer.Size = samplesRate * playTime
-        var tempAudioBuffer = FloatArray(sampleRate)
+        var tempAudioBuffer = ArrayList<Float>()
 
         //map drawing coordinates to +-1.0f for AudioTrack.write()
         val viewHeight = dv?.height
         val shiftDiff = viewHeight!! / 2f
-        //ToDo: finish increment-by-step math
-        for (a in 0 until sampleRate step waveSize/(sampleRate/setFrequency)) {
-            tempAudioBuffer[a] = (yWave!![a] - shiftDiff) / -viewHeight!! //Negative to invert +- values
-            Log.d(TAG, String.format("Point %d: %f -> %f", a, yWave!![a], tempAudioBuffer[a]))
+        val waveSize = xWave!!.size
+        val stepSize = waveSize/(sampleRate/setFrequency)
+        for (a in 0 until waveSize step stepSize) {
+            tempAudioBuffer.add((yWave!![a] - shiftDiff) / (-viewHeight / 2)) //Negative to invert +- values
         }
 
-        val playBufferSize = waveSize * setFrequency * playTime / 1000
-        Log.d(TAG, String.format("Stats:\nWaveSamples: $waveSize\nFreq: $setFrequency\nPlayTime: $playTime ms\nAudioBufferSize: $playBufferSize"))
+        val samplesPerWave = tempAudioBuffer.size
+        val playBufferSize = samplesPerWave * setFrequency * playTime / 1000
+        Log.d(TAG, String.format("Stats:\nWaveSamples: $samplesPerWave\nFreq: $setFrequency\nPlayTime: $playTime ms\nAudioBufferSize: $playBufferSize"))
         audioBuffer = FloatArray(playBufferSize)
-        var i = 0
-        for (f in 0 until (playBufferSize/waveSize)) { //Number of cycles = Frequency (Hz) * Time (s)
-            for (p in 0 until sampleRate) {//Points per cycle
-                audioBuffer!![i++] = tempAudioBuffer[p]
+        for (f in 1..(playBufferSize/waveSize)) { //Number of cycles = Frequency (Hz) * Time (s)
+            for (p in 0 until samplesPerWave) {//Points per cycle
+                audioBuffer!![f * p] = tempAudioBuffer[p]
             }
         }
         //return audioBuffer!!
     }
-    private fun calculatePureSignBuffer(freq: Int, time: Int, localSampleRate: Int): AudioTrack {
-        val sampleCount = 2 * localSampleRate * time and 1.inv() //Even counts only, double it because it only plays half the set time.
-        Log.i(TAG, "Count: $sampleCount")
-        val samples = FloatArray(sampleCount)
+    private fun calculateSingleSineWave(width: Int, height: Int) {
+        xWave = ArrayList()
+        yWave = ArrayList()
         var i = 0
-        while (i < sampleCount) {
-            val sample = (sin(Math.PI * i / (localSampleRate / freq))).toFloat()
-            samples[i + 0] = sample
-            samples[i + 1] = sample
-            i += 2
+        val samples = width * 0.9f
+        while (i < samples) {
+            xWave!!.add(i.toFloat() + 100)
+            yWave!!.add((sin(Math.PI * i * 2 / samples).toFloat() * height / -2.3f) + height/2 - 25)
+            i++
         }
-        val track = AudioTrack(AudioManager.STREAM_MUSIC, localSampleRate,
-            AudioFormat.CHANNEL_OUT_STEREO, AudioFormat.ENCODING_PCM_FLOAT,
-            sampleCount * (java.lang.Float.SIZE / 8), AudioTrack.MODE_STATIC)
-        track.write(samples, 0, sampleCount, AudioTrack.WRITE_BLOCKING)
-        return track
     }
 
     fun playSound() {
@@ -314,9 +304,14 @@ class MainActivity : AppCompatActivity() {
 //                .build())
 //            .setBufferSizeInBytes(buffSize)
 //            .build()
-        val player = AudioTrack(AudioManager.STREAM_MUSIC, sampleRate,
-            AudioFormat.CHANNEL_OUT_STEREO, AudioFormat.ENCODING_PCM_FLOAT,
-            buffSize, AudioTrack.WRITE_BLOCKING)
+        val player = AudioTrack(
+            AudioManager.STREAM_MUSIC,
+            sampleRate,
+            AudioFormat.CHANNEL_OUT_STEREO,
+            AudioFormat.ENCODING_PCM_FLOAT,
+            buffSize,
+            AudioTrack.WRITE_BLOCKING
+        )
 
         Log.d(TAG, String.format("More Stats\nArrayCount: ${audioBuffer!!.size}\nBufferSize: $buffSize\nSampleRate: $sampleRate"))//buffSize is currently 4 * audioBuffer!!.size
         player.write(audioBuffer!!, 0, audioBuffer!!.size, AudioTrack.WRITE_BLOCKING)

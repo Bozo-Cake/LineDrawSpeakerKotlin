@@ -36,20 +36,6 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
-        <Switch
-            android:id="@+id/autoSmplRate"
-            android:layout_width="125dp"
-            android:layout_height="0dp"
-            android:layout_marginTop="16dp"
-            android:layout_marginBottom="16dp"
-            android:checked="true"
-            android:text="Auto Smpl Rate"
-            android:textSize="12sp"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toStartOf="@+id/playButton"
-            app:layout_constraintStart_toEndOf="@+id/frequencySelector"
-            app:layout_constraintTop_toTopOf="parent" />
-
         <Button
             android:id="@+id/playButton"
             android:layout_width="88dp"
