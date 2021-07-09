@@ -261,18 +261,21 @@ class MainActivity : AppCompatActivity() {
         val viewHeight = dv?.height
         val shiftDiff = viewHeight!! / 2f
         val waveSize = xWave!!.size
-        val stepSize = waveSize/(sampleRate/setFrequency)
+        val stepSize = waveSize/(sampleRate/setFrequency) + 1
         for (a in 0 until waveSize step stepSize) {
             tempAudioBuffer.add((yWave!![a] - shiftDiff) / (-viewHeight / 2)) //Negative to invert +- values
         }
 
         val samplesPerWave = tempAudioBuffer.size
+        Log.d(TAG, String.format("Magical Number is ${samplesPerWave * setFrequency}"))
         val playBufferSize = samplesPerWave * setFrequency * playTime / 1000
         Log.d(TAG, String.format("Stats:\nWaveSamples: $samplesPerWave\nFreq: $setFrequency\nPlayTime: $playTime ms\nAudioBufferSize: $playBufferSize"))
         audioBuffer = FloatArray(playBufferSize)
-        for (f in 1..(playBufferSize/waveSize)) { //Number of cycles = Frequency (Hz) * Time (s)
+        var i = 0
+        for (f in 0 until setFrequency) {
             for (p in 0 until samplesPerWave) {//Points per cycle
-                audioBuffer!![f * p] = tempAudioBuffer[p]
+                audioBuffer!![i++] = tempAudioBuffer[p]
+                //Log.d(TAG, tempAudioBuffer[p].toString())
             }
         }
         //return audioBuffer!!
@@ -291,7 +294,7 @@ class MainActivity : AppCompatActivity() {
 
     fun playSound() {
         Log.d(TAG, "Attempting to play Sound with your ghetto line :)")
-        val buffSize = audioBuffer!!.size * (java.lang.Float.SIZE / 8)
+        val buffSize = audioBuffer!!.size
 //        val player = AudioTrack.Builder()
 //            .setAudioAttributes(AudioAttributes.Builder()
 //                .setUsage(AudioAttributes.USAGE_MEDIA)
@@ -309,12 +312,14 @@ class MainActivity : AppCompatActivity() {
             sampleRate,
             AudioFormat.CHANNEL_OUT_STEREO,
             AudioFormat.ENCODING_PCM_FLOAT,
-            buffSize,
+            buffSize * (java.lang.Float.SIZE / 8),
             AudioTrack.WRITE_BLOCKING
         )
-
-        Log.d(TAG, String.format("More Stats\nArrayCount: ${audioBuffer!!.size}\nBufferSize: $buffSize\nSampleRate: $sampleRate"))//buffSize is currently 4 * audioBuffer!!.size
-        player.write(audioBuffer!!, 0, audioBuffer!!.size, AudioTrack.WRITE_BLOCKING)
+        for (i in audioBuffer!!) {
+            Log.d("PLAYBUFFER", i.toString())
+        }
+        Log.d(TAG, String.format("More Stats\nArrayCount: ${audioBuffer!!.size}\nSampleRate: $sampleRate"))//buffSize is currently 4 * audioBuffer!!.size
+        player.write(audioBuffer!!, 0, buffSize, AudioTrack.WRITE_BLOCKING)
         return
     }
 }
