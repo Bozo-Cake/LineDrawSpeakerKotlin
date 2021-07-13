@@ -268,14 +268,15 @@ class MainActivity : AppCompatActivity() {
 
         val samplesPerWave = tempAudioBuffer.size
         Log.d(TAG, String.format("Magical Number is ${samplesPerWave * setFrequency}"))
-        val playBufferSize = samplesPerWave * setFrequency * playTime / 1000
+        val numWaves = setFrequency * playTime / 1000
+        val playBufferSize = samplesPerWave * numWaves
         Log.d(TAG, String.format("Stats:\nWaveSamples: $samplesPerWave\nFreq: $setFrequency\nPlayTime: $playTime ms\nAudioBufferSize: $playBufferSize"))
         audioBuffer = FloatArray(playBufferSize)
         var i = 0
-        for (f in 0 until setFrequency) {
+        for (f in 0 until numWaves) {
             for (p in 0 until samplesPerWave) {//Points per cycle
                 audioBuffer!![i++] = tempAudioBuffer[p]
-                //Log.d(TAG, tempAudioBuffer[p].toString())
+                Log.d("PLAYBUFFER", String.format(",$i,${tempAudioBuffer[p]},${audioBuffer!![i-1]}"))
             }
         }
         //return audioBuffer!!
@@ -315,8 +316,8 @@ class MainActivity : AppCompatActivity() {
             buffSize * (java.lang.Float.SIZE / 8),
             AudioTrack.WRITE_BLOCKING
         )
-        for (i in audioBuffer!!) {
-            Log.d("PLAYBUFFER", i.toString())
+        for (i in 0 until buffSize) {
+            Log.d("PLAYINGBUFFER", ",$i, ${audioBuffer!![i]}")
         }
         Log.d(TAG, String.format("More Stats\nArrayCount: ${audioBuffer!!.size}\nSampleRate: $sampleRate"))//buffSize is currently 4 * audioBuffer!!.size
         player.write(audioBuffer!!, 0, buffSize, AudioTrack.WRITE_BLOCKING)
