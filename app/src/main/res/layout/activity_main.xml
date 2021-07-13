@@ -21,7 +21,7 @@
             android:layout_width="350dp"
             android:layout_height="wrap_content"
             android:max="10000"
-            android:progress="262"
+            android:progress="100"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
@@ -30,7 +30,7 @@
             android:id="@+id/freqView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="262 Hz"
+            android:text="100 Hz"
             app:layout_constraintBottom_toTopOf="@+id/frequencySelector"
             app:layout_constraintEnd_toEndOf="@+id/frequencySelector"
             app:layout_constraintStart_toStartOf="parent"

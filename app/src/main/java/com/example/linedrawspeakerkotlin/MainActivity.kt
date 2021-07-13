@@ -18,6 +18,7 @@ import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.*
 import java.util.*
 import kotlin.math.sin
@@ -41,14 +42,13 @@ class MainActivity : AppCompatActivity() {
     private val vibrateTime = 100L //ms
     private val defaultSampleRate = 44100
     private var sampleRate = defaultSampleRate
-    private val defaultFrequency = 262
+    private val defaultFrequency = 100
     private var setFrequency = defaultFrequency
     private val playTime = 2000 //ms
 
     private var vibrator: Vibrator? = null
     private var xWave: ArrayList<Float>? = null
     private var yWave: ArrayList<Float>? = null
-    private var audioBuffer: FloatArray? = null
 
     @SuppressLint("ObjectAnimatorBinding")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -242,18 +242,15 @@ class MainActivity : AppCompatActivity() {
         Log.d(TAG, "Adding myCanvas to mainActivity")
     }
 
-    public fun letsHearIt(v: View) {
-        calculateBuffer()
-        playSound()
+    fun letsHearIt(v: View) {
+//        calculateBuffer()
+//        playSound()
 //        sampleRate = defaultSampleRate
 //        calculatePureSignBuffer(setFrequency, 2, sampleRate).play()
-        //the following need to be put in their own suspend function and called from there.
-        //val doIt = lifecycleScope.async(Dispatchers.Default) {calculateBuffer()}
-        //audioBuffer = doIt.await()
-
+        lifecycleScope.async(Dispatchers.Default) {calculateAndPlayBuffer()}
     }
 
-    private fun calculateBuffer() {
+    private fun calculateAndPlayBuffer() {
         //audioBuffer.Size = samplesRate * playTime
         var tempAudioBuffer = ArrayList<Float>()
 
@@ -261,25 +258,31 @@ class MainActivity : AppCompatActivity() {
         val viewHeight = dv?.height
         val shiftDiff = viewHeight!! / 2f
         val waveSize = xWave!!.size
-        val stepSize = waveSize/(sampleRate/setFrequency) + 1
+        val stepSize = waveSize/(sampleRate/setFrequency) + 1 //to account for rounding down.
+        //This currently produces a single clean reduced-frequency audioWaveBuffer
         for (a in 0 until waveSize step stepSize) {
             tempAudioBuffer.add((yWave!![a] - shiftDiff) / (-viewHeight / 2)) //Negative to invert +- values
         }
 
         val samplesPerWave = tempAudioBuffer.size
-        Log.d(TAG, String.format("Magical Number is ${samplesPerWave * setFrequency}"))
+
         val numWaves = setFrequency * playTime / 1000
         val playBufferSize = samplesPerWave * numWaves
-        Log.d(TAG, String.format("Stats:\nWaveSamples: $samplesPerWave\nFreq: $setFrequency\nPlayTime: $playTime ms\nAudioBufferSize: $playBufferSize"))
-        audioBuffer = FloatArray(playBufferSize)
+        Log.d(TAG, String.format("Stats:\nCoordinateCount: $waveSize\nStepSize: $stepSize\nWaveSamples: $samplesPerWave\nFreq: $setFrequency\nPlayTime: $playTime ms\nAudioBufferSize: $playBufferSize"))
+        var audioBuffer = FloatArray(playBufferSize)
         var i = 0
-        for (f in 0 until numWaves) {
+        for (f in 0 until numWaves) {//Waves per buffer
             for (p in 0 until samplesPerWave) {//Points per cycle
                 audioBuffer!![i++] = tempAudioBuffer[p]
-                Log.d("PLAYBUFFER", String.format(",$i,${tempAudioBuffer[p]},${audioBuffer!![i-1]}"))
+//                if(i < 10000) {
+//                    Log.d(
+//                        "PLAYBUFFER",
+//                        String.format(",${i-1},${tempAudioBuffer[p]},${audioBuffer[i - 1]}")
+//                    )
+//                }
             }
         }
-        //return audioBuffer!!
+        playSound(audioBuffer)
     }
     private fun calculateSingleSineWave(width: Int, height: Int) {
         xWave = ArrayList()
@@ -293,9 +296,9 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    fun playSound() {
+    private fun playSound(buffer: FloatArray) {
         Log.d(TAG, "Attempting to play Sound with your ghetto line :)")
-        val buffSize = audioBuffer!!.size
+        val buffSize = buffer.size
 //        val player = AudioTrack.Builder()
 //            .setAudioAttributes(AudioAttributes.Builder()
 //                .setUsage(AudioAttributes.USAGE_MEDIA)
@@ -316,11 +319,11 @@ class MainActivity : AppCompatActivity() {
             buffSize * (java.lang.Float.SIZE / 8),
             AudioTrack.WRITE_BLOCKING
         )
-        for (i in 0 until buffSize) {
-            Log.d("PLAYINGBUFFER", ",$i, ${audioBuffer!![i]}")
-        }
-        Log.d(TAG, String.format("More Stats\nArrayCount: ${audioBuffer!!.size}\nSampleRate: $sampleRate"))//buffSize is currently 4 * audioBuffer!!.size
-        player.write(audioBuffer!!, 0, buffSize, AudioTrack.WRITE_BLOCKING)
+//        for (i in 0 until buffSize) {
+//            Log.d("PLAYINGBUFFER", ",$i, ${buffer[i]}")
+//        }
+        Log.d(TAG, String.format("More Stats\nArrayCount: ${buffer.size}\nSampleRate: $sampleRate"))//buffSize is currently 4 * audioBuffer!!.size
+        player.write(buffer, 0, buffSize, AudioTrack.WRITE_BLOCKING)
         return
     }
 }
